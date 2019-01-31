@@ -22,11 +22,21 @@ class GraphicNode(QGraphicsEllipseItem):
 
 class GraphicEdge(QGraphicsLineItem):
 
-	def __init__(self,line,src):
-		super().__init__(line)
+	def __init__(self,src,line=None):
+		super().__init__(line if line else QLineF(src.center(), src.center()))
 		self.setZValue(-100)
 		self.source_node = src
+		src.edge_graphics.append(self)
 		self.target_node = None
+
+	def update_target(self, targ):
+		if type(targ) == GraphicNode:
+			self.target_node = targ
+			targ.edge_graphics.append(self)
+			self.setLine(QLineF(self.line().p1(), targ.center()))
+		else:
+			self.setLine(QLineF(self.line().p1(), targ.scenePos()))
+
 
 class GraphScene(QGraphicsScene):
 
@@ -35,7 +45,8 @@ class GraphScene(QGraphicsScene):
 
 		self.setSceneRect(0,0,1000,500)
 		self.editing = True
-		self.nodes = []
+		self.current_line = None
+		self.left_start = True
 
 	def keyReleaseEvent(self, event):
 		print('keypress')
@@ -55,11 +66,22 @@ class GraphScene(QGraphicsScene):
 
 			if not item:
 				self.addItem(GraphicNode(event.scenePos()))
+			elif type(item) == GraphicNode:
+				if not self.current_line:
+					self.current_line = GraphicEdge(item)
+					self.addItem(self.current_line)
+					self.left_start = False
+				elif self.left_start:
+					self.current_line.update_target(item)
+					self.current_line = None
 
 	def mouseMoveEvent(self, event):
-		print('moving')
 		if self.editing:
-			pass
+			if self.current_line:
+				self.current_line.update_target(event)
+				if self.itemAt(event.scenePos(), QTransform()) != self.current_line.source_node:
+					self.left_start = True
+
 
 if __name__ == '__main__':
 	app = QApplication(sys.argv)
