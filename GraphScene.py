@@ -8,18 +8,19 @@ from PyQt5.QtCore import Qt, QLineF
 
 
 class GraphicNode(QGraphicsEllipseItem):
-	r = 40
+	default_radius = 20
 
 	def __init__(self,point):
+		r = GraphicNode.default_radius
 		super().__init__(point.x()-r,point.y()-r,2*r,2*r)
-		self.setBrush(QBrush(Qt.light_blue))
+		self.setBrush(QBrush(Qt.cyan))
 		self.empty = True
 		self.edge_graphics = []
 
 	def center(self):
 		return self.sceneBoundingRect().center()
 
-class GraphicEdge(QGraphicLineItem):
+class GraphicEdge(QGraphicsLineItem):
 
 	def __init__(self,line,src):
 		super().__init__(line)
@@ -50,8 +51,6 @@ class GraphScene(QGraphicsScene):
 	def mousePressEvent(self, event):
 		print('clicked')
 		if self.editing:
-			pass
-
 			item = self.itemAt(event.scenePos(), QTransform())
 
 			if not item:
