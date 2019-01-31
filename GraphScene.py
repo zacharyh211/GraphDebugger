@@ -18,3 +18,41 @@ class GraphicNode(QGraphicsEllipseItem):
 	def center(self):
 		return self.sceneBoundingRect().center()
 
+class GraphScene(QGraphicsScene):
+
+	def __init__(self):
+		super().__init__()
+
+		self.setSceneRect(0,0,1000,500)
+		self.editing = True
+		self.nodes = []
+
+	def keyReleaseEvent(self, event):
+		print('keypress')
+		if self.editing:
+			pass
+
+	def mouseReleaseEvent(self, event):
+		print('unclicked')
+		if self.editing:
+			pass
+
+	def mousePressEvent(self, event):
+		print('clicked')
+		if self.editing:
+			pass
+
+	def mouseMoveEvent(self, event):
+		print('moving')
+		if self.editing:
+			pass
+
+if __name__ == '__main__':
+	app = QApplication(sys.argv)
+	view = QGraphicsView()
+	view.setMouseTracking(True)
+	ex = GraphScene()
+	view.setScene(ex)
+	view.show()
+
+	sys.exit(app.exec_())
