@@ -62,18 +62,20 @@ class GraphScene(QGraphicsScene):
 	def mousePressEvent(self, event):
 		print('clicked')
 		if self.editing:
-			item = self.itemAt(event.scenePos(), QTransform())
 
-			if not item:
-				self.addItem(GraphicNode(event.scenePos()))
-			elif type(item) == GraphicNode:
-				if not self.current_line:
-					self.current_line = GraphicEdge(item)
-					self.addItem(self.current_line)
-					self.left_start = False
-				elif self.left_start:
-					self.current_line.update_target(item)
-					self.current_line = None
+			if event.buttons() == Qt.LeftButton:
+				item = self.itemAt(event.scenePos(), QTransform())
+
+				if not item:
+					self.addItem(GraphicNode(event.scenePos()))
+				elif type(item) == GraphicNode:
+					if not self.current_line:
+						self.current_line = GraphicEdge(item)
+						self.addItem(self.current_line)
+						self.left_start = False
+					elif self.left_start:
+						self.current_line.update_target(item)
+						self.current_line = None
 
 	def mouseMoveEvent(self, event):
 		if self.editing:
