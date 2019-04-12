@@ -1,0 +1,14 @@
+
+TODO:
+-Proper reset on import (importlib.reload)
+-Make stop and reaching the end of the file actually work
+-Have "run" continue on its own until reaching a breakpoint
+-Have weighted edges be optional to prevent dialog box from
+  showing every time
+-Configure the text field to support new/save/open
+-Make some template graphs and support for import/export
+-Add a console dock to see debug code's text output
+-Add a queue widget that has a visual table
+	-hovering over a row highlights the corresponding
+	    node in the graph
+-Look into Qt style support

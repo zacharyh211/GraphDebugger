@@ -1,96 +1,200 @@
 
 
-import sys
-from PyQt5.QtWidgets import QApplication, QLabel, QWidget, QGraphicsScene, QGraphicsView, QGraphicsEllipseItem, QGraphicsLineItem
-from PyQt5.QtGui import QPainter, QColor, QPen, QPixmap, QTransform, QBrush
-from PyQt5.QtCore import Qt, QLineF
+from PyQt5.QtWidgets import *
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
+from enum import Enum
+
+import math
 
 
+class Color(Enum):
 
-class GraphicNode(QGraphicsEllipseItem):
-	default_radius = 20
+	RED = 1
+	BLACK = 2
+	CYAN = 3
+	BLUE = 4
+	GRAY = 5
+	WHITE = 6
+
+color_to_qt = {
+		Color.RED : Qt.red,
+		Color.BLACK : Qt.black,
+		Color.CYAN : Qt.cyan,
+		Color.BLUE : Qt.blue,
+		Color.GRAY : Qt.gray,
+		Color.WHITE : Qt.white
+	}
+
+class Graph:
+
+	def __init__(self, nodes = None, edges = None):
+		self.edges = edges if edges else list()
+		self.nodes = nodes if nodes else list()
+
+
+class Edge:
+
+	def __init__(self, src, targ, weight = None):
+		self.src = src
+		self.targ = targ
+		self.weight = weight
+		self.flow = 0
+		self.color = Color.BLACK
+		self.graphic = GraphicEdge(self)
+
+class GraphicEdge(QGraphicsLineItem):
+
+	label_distance = 15
+
+	def __init__(self, edge):
+		super().__init__(QLineF(edge.src.graphic.center(), edge.targ.graphic.center()))
+		self.setZValue(-100)
+		self.edge = edge
+		self.edge_label = None
+
+	def paint(self, painter, option, widget):
+		super().setLine(QLineF(self.edge.src.graphic.center(), self.edge.targ.graphic.center()))
+		self.setPen(QPen(color_to_qt[self.edge.color]))
+		super().paint(painter, option, widget)
+
+class Node:
 
 	def __init__(self,point):
+
+		self.out = []
+		self.inc = []
+		self.adj = []
+		self._color = Color.CYAN
+		self.graphic = GraphicNode(self,point)
+
+
+	@property
+	def color(self):
+		return self._color
+
+	@color.setter
+	def color(self, value):
+		self._color = value
+		self.graphic.update()
+
+class GraphicNode(QGraphicsEllipseItem):
+	default_radius = 18
+
+	def __init__(self,node,point):
 		r = GraphicNode.default_radius
 		super().__init__(point.x()-r,point.y()-r,2*r,2*r)
-		self.setBrush(QBrush(Qt.cyan))
-		self.empty = True
-		self.edge_graphics = []
+		self.node = node
+
+		self.setBrush(QBrush(color_to_qt[self.node.color]))
 
 	def center(self):
 		return self.sceneBoundingRect().center()
 
-class GraphicEdge(QGraphicsLineItem):
+	def paint(self, painter, option, widget):
+		self.setBrush(QBrush(color_to_qt[self.node.color]))
+		super().paint(painter, option, widget)
 
-	def __init__(self,src,line=None):
-		super().__init__(line if line else QLineF(src.center(), src.center()))
-		self.setZValue(-100)
-		self.source_node = src
-		src.edge_graphics.append(self)
-		self.target_node = None
-
-	def update_target(self, targ):
-		if type(targ) == GraphicNode:
-			self.target_node = targ
-			targ.edge_graphics.append(self)
-			self.setLine(QLineF(self.line().p1(), targ.center()))
-		else:
-			self.setLine(QLineF(self.line().p1(), targ.scenePos()))
 
 
 class GraphScene(QGraphicsScene):
 
 	def __init__(self):
 		super().__init__()
-
-		self.setSceneRect(0,0,1000,500)
+		gui = self
+		self.setSceneRect(0,0,500,500)
 		self.editing = True
 		self.current_line = None
-		self.left_start = True
+		self.current_start = None
 
-	def keyReleaseEvent(self, event):
-		print('keypress')
-		if self.editing:
-			pass
+		self.nodes = []
+		self.edges = []
 
-	def mouseReleaseEvent(self, event):
-		print('unclicked')
-		if self.editing:
-			pass
+	def get_graph(self):
+		return Graph(self.nodes, self.edges)
 
+	def mouseDoubleClickEvent(self, event):
+		self.mousePressEvent(event)
 
 	def mousePressEvent(self, event):
-		print('clicked')
 		if self.editing:
-
 			if event.buttons() == Qt.LeftButton:
 				item = self.itemAt(event.scenePos(), QTransform())
 
 				if not item:
-					self.addItem(GraphicNode(event.scenePos()))
+					self.put_node(event.scenePos())
 				elif type(item) == GraphicNode:
 					if not self.current_line:
-						self.current_line = GraphicEdge(item)
+						self.current_line = QGraphicsLineItem(QLineF(event.scenePos(), event.scenePos()))
+						self.current_line.setZValue(-100)
+						self.current_start = item
 						self.addItem(self.current_line)
-						self.left_start = False
-					elif self.left_start:
-						self.current_line.update_target(item)
-						self.current_line = None
+
+	def mouseReleaseEvent(self,event):
+		if self.editing:
+			if event.button() == Qt.LeftButton:
+				item = self.itemAt(event.scenePos(), QTransform())
+				if not item or type(item) != GraphicNode:
+					self.removeItem(self.current_line)
+					self.current_line = None
+					self.current_start = None
+				elif item != self.current_start and self.current_start:
+					self.removeItem(self.current_line)
+					self.put_edge(self.current_start, item)
+					self.current_line = None
+					self.current_start = None
 
 	def mouseMoveEvent(self, event):
 		if self.editing:
 			if self.current_line:
-				self.current_line.update_target(event)
-				if self.itemAt(event.scenePos(), QTransform()) != self.current_line.source_node:
-					self.left_start = True
+				self.current_line.setLine(QLineF(self.current_line.line().p1(), event.scenePos()))
+
+	def put_node(self,pos):
+		u = Node(pos)
+		self.nodes.append(u)
+		self.addItem(u.graphic)
+
+	def put_edge(self, u, v):
+		u = u.node
+		v = v.node
+		e = Edge(u,v)
+		u.out.append(e)
+		v.inc.append(e)
+		u.adj.append(v)
+		v.adj.append(u)
+		self.edges.append(e)
+		self.addItem(e.graphic)
+		self.add_edge_weight(e)
+
+	def add_edge_weight(self, e):
+
+		#TODO: Make value -> edge weight. Then have paint get the value from logical edge
+
+		value, ok_pressed = QInputDialog.getDouble(None, "Input Weight", "Weight=")
+
+		if int(value) == value:
+			value = int(value)
+
+		e.weight = value
+		e = e.graphic
+
+		midpt = e.line().center()
+		ang = (e.line().angle() + 90) % 360
+		x,y = midpt.x(), midpt.y()
+		label = QGraphicsTextItem(str(value))
+		d = GraphicEdge.label_distance
+
+		if ang >= 180:
+			ang -= 180
+
+		x += d * (math.cos(math.radians(ang)))
+		y -= d * (math.sin(math.radians(ang)))
+
+		x = x - label.boundingRect().width() / 2
+		y = y - label.boundingRect().height() / 2
+
+		e.edge_label = label
+		self.addItem(label)
+		label.setPos(x,y)
 
 
-if __name__ == '__main__':
-	app = QApplication(sys.argv)
-	view = QGraphicsView()
-	view.setMouseTracking(True)
-	ex = GraphScene()
-	view.setScene(ex)
-	view.show()
-
-	sys.exit(app.exec_())
