@@ -1,7 +1,9 @@
 
 
-import GraphScene_v2, EditDebugger
-from GraphScene_v2 import Color
+
+
+import GraphScene, EditDebugger
+from GraphScene import Color
 
 
 graph = EditDebugger.app.get_graph()

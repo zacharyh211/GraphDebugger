@@ -241,6 +241,7 @@ class Debugger(QObject):
         print(Debugger.obj.app.current_file)
         sys.settrace(Debugger.debug_fbtrace)
         self.input.queue.clear()
+        
         data = Graph.write_graph_to_json(self.app.get_graph())
         try:
             print(self.mod)
@@ -258,9 +259,7 @@ class Debugger(QObject):
             pass
         self.graph_reloaded.emit(data)
 
-        print('finished')
-
-        self.line_changed.emit(-1)
+        self.line_changed.emit(-2)
 
     def debug_fbtrace(frame, event, arg):
         if event != 'call':
@@ -282,7 +281,6 @@ class Debugger(QObject):
         else:
             return Debugger.debug_btrace
 
-    #TODO: add a separate debug trace for "looking for breakpoint" (play with eclipse)
     def debug_trace(frame, event, arg):
         if event != 'return' and event != 'line':
             return
@@ -349,6 +347,10 @@ class LineMargin(QWidget):
             self.breakpoints.add(lineno)
         self.update()
 
+    def clear_breakpoints(self):
+        self.breakpoints.clear()
+        self.update()
+
     def sizeHint(self):
         return QSize(self.margin_width, 0)
 
@@ -402,9 +404,13 @@ class LineMargin(QWidget):
 class Editor(QPlainTextEdit):
 
     highlight_color = QColor(Qt.yellow).lighter(160)
+    background_color = QColor(Qt.white)
 
     highlight_format = QTextBlockFormat()
     highlight_format.setBackground(highlight_color)
+
+    unhighlight_format = QTextBlockFormat()
+    unhighlight_format.setBackground(background_color)
 
     @property
     def active_line(self):
@@ -423,7 +429,7 @@ class Editor(QPlainTextEdit):
         self.blockCountChanged.connect(self.update_width)
         self.updateRequest.connect(self.lm.update_margin)
         self.update_width(1)
-        self.active_line = -1
+        self.active_line = -2
 
     def update_width(self, blocks):
         self.lm.max_line_no = self.blockCount()
@@ -436,9 +442,20 @@ class Editor(QPlainTextEdit):
     def sizeHint(self):
         return QSize(500,500)
 
+    def setPlainText(self,s):
+        super().setPlainText(s)
+        self.lm.clear_breakpoints()
+
+
     def change_active(self, val):
-        blk = self.document().findBlockByLineNumber(val-1)
-        QTextCursor(blk).setBlockFormat(Editor.highlight_format)
-        self.active_line = val
+        if val != self.active_line:
+            blk = self.document().findBlockByLineNumber(self.active_line-1)
+            QTextCursor(blk).setBlockFormat(Editor.unhighlight_format)
+            self.active_line = val
+
+            if val >= 1:
+                blk = self.document().findBlockByLineNumber(self.active_line-1)
+                QTextCursor(blk).setBlockFormat(Editor.highlight_format)
+
 
 

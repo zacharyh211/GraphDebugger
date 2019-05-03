@@ -3,11 +3,12 @@
 TODO:
 -check debugger entering functions
 -only allow editing while not running
--Add line highlighting during debug
 -Add a console dock to see debug code's text output
 -Add a queue widget that has a visual table
 	-hovering over a row highlights the corresponding
 	    node in the graph
--Look into Qt style support
--open file and new should reset breakpoints
+-Look into Qt style support - at least make text less harsh
 
+-reset graph at start of execution instead of end
+-Check if queue is getting cleared correctly? Keeps running repeatedly after repeat clicks
+-Ending execution also isn't removing the '>' tracker :: update the margin on execution end, needs to be repainted

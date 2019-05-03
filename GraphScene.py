@@ -145,6 +145,22 @@ class Edge:
 		if hasattr(self, 'graphic'):
 			self.graphic.update_label()
 
+	def __lt__(self,other):
+		return self.weight < other.weight
+
+	def __gt__(self,other):
+		return self.weight > other.weight
+
+	@property
+	def color(self):
+		return self._color
+
+	@color.setter
+	def color(self, value):
+		self._color = value
+		if hasattr(self, 'graphic'):
+			self.graphic.update()
+
 
 class GraphicEdge(QGraphicsLineItem):
 
@@ -261,6 +277,17 @@ class Node:
 			self.adj.remove(e.src)
 			self.inc.remove(e)
 
+	def _adj_edges(self):
+		for e in self.inc:
+			yield e,e.src
+		for e in self.out:
+			yield e,e.targ
+
+	@property
+	def adj_edges(self):
+		return self._adj_edges()
+	
+
 	@property
 	def color(self):
 		return self._color
@@ -350,6 +377,7 @@ class GraphScene(QGraphicsScene):
 			self.addItem(n.graphic)
 		for e in self.graph.edges:
 			self.addItem(e.graphic)
+			e.graphic.update_label()
 
 	def get_graph(self):
 		return self.graph
