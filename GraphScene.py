@@ -91,6 +91,12 @@ class Graph:
 
 		return Graph(list(nodes.values()), list(edges.values()), labels)
 
+	def get_node(self,label=None):
+		if not label or label not in self.labels:
+			return self.nodes[0] if len(self.nodes) > 0 else None
+		return self.labels[label]
+
+
 
 
 class Edge:
@@ -173,7 +179,16 @@ class GraphicEdge(QGraphicsLineItem):
 		self.edge_label = None
 
 	def paint(self, painter, option, widget):
-		super().setLine(QLineF(self.edge.src.graphic.center(), self.edge.targ.graphic.center()))
+
+		if self.edge.src in [e.targ for e in self.edge.targ.out]:
+			unit = self.line().unitVector()
+			unit.setAngle(unit.angle()+90)
+			unit.setLength(5)
+			line = QLineF(self.edge.src.graphic.center(), self.edge.targ.graphic.center())
+			line.translate(unit.p2() - unit.p1())
+			super().setLine(line)
+		else:
+			super().setLine(QLineF(self.edge.src.graphic.center(), self.edge.targ.graphic.center()))
 		self.setPen(QPen(color_to_qt[self.edge.color]))
 		super().paint(painter, option, widget)
 
@@ -204,18 +219,21 @@ class GraphicEdge(QGraphicsLineItem):
 		stroker.setWidth(15)
 		return stroker.createStroke(path)
 
+
 	def update_label(self):
 		w = self.edge.weight
 		f = self.edge.flow
 
-		midpt = self.line().center()
-		ang = (self.line().angle() + 90) % 360
-		x,y = midpt.x(), midpt.y()
+		n = self.line().normalVector()
+		d = self.line().unitVector()
+		d.setLength(self.line().length()//2)
+		n.translate(d.p2() - d.p1())
+		n.setLength(GraphicEdge.label_distance)
+
 
 		if not self.edge_label:
 			self.edge_label = QGraphicsTextItem('')
 			self.scene().addItem(self.edge_label)
-
 		if self.scene().show_flow and self.scene().show_weight:
 			self.edge_label.setPlainText('{:g}/{:g}'.format(f if f is not None else math.nan,w if w is not None else math.nan))
 		elif self.scene().show_weight:
@@ -224,18 +242,15 @@ class GraphicEdge(QGraphicsLineItem):
 			self.edge_label.setPlainText('{:g}'.format(f if f is not None else math.nan))
 		else:
 			self.edge_label.setPlainText('')
-		d = GraphicEdge.label_distance
 
-		if ang >= 180:
-			ang -= 180
 
-		x += d * (math.cos(math.radians(ang)))
-		y -= d * (math.sin(math.radians(ang)))
+		if 90 < n.angle() < 270 and self.edge.src not in [e.targ for e in self.edge.targ.out]:
+			n.setAngle(n.angle() + 180)
 
-		x = x - self.edge_label.boundingRect().width() / 2
-		y = y - self.edge_label.boundingRect().height() / 2
-
+		x = n.p2().x() - self.edge_label.boundingRect().width() / 2
+		y = n.p2().y() - self.edge_label.boundingRect().height() / 2
 		self.edge_label.setPos(x,y)
+
 
 class Node:
 
@@ -271,10 +286,10 @@ class Node:
 
 	def remove(self, e):
 		if e.src == self:
-			self.adj.remove(e.targ)
+			self.adj = [v for v in self.adj if v != e.targ]
 			self.out.remove(e)
 		else:
-			self.adj.remove(e.src)
+			self.adj = [v for v in self.adj if v != e.src]
 			self.inc.remove(e)
 
 	def _adj_edges(self):
@@ -367,6 +382,7 @@ class GraphScene(QGraphicsScene):
 			self.addItem(n.graphic)
 		for e in graph.edges:
 			self.addItem(e.graphic)
+			e.graphic.update_label()
 
 	def set_graph_from_json(self, data):
 		self.clear()
@@ -466,19 +482,27 @@ class GraphScene(QGraphicsScene):
 		u = u.node
 		v = v.node
 
-		if v in u.adj or u == v:
+		if u == v or v in [e.targ for e in u.out]:
 			return
 
 		e = Edge(u,v,w)
 		u.out.append(e)
 		v.inc.append(e)
-		u.adj.append(v)
-		v.adj.append(u)
+
+		if v not in u.adj:
+			u.adj.append(v)
+		if u not in v.adj:
+			v.adj.append(u)
 		self.graph.add_edge(e)
 		self.addItem(e.graphic)
 
+		for tmp in v.out:
+			if tmp.targ == u:
+				tmp.graphic.update_label()
+
 		if w is None and self.show_weight:
 			self.set_edge_weight(e)
+
 
 	def set_edge_weight(self, e):
 		value, ok_pressed = QInputDialog.getDouble(None, "Input Weight", "Weight=")
@@ -496,7 +520,7 @@ class GraphScene(QGraphicsScene):
 	def remove_graphic_node(self, n):
 		self.removeItem(n)
 		n = n.node
-		for e in n.out:
+		for e in n.out.copy():
 			self.remove_graphic_edge(e.graphic)
 		for e in n.inc.copy():
 			self.remove_graphic_edge(e.graphic)

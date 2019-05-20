@@ -26,7 +26,7 @@ class Op(Enum):
 
 class GraphApp(QMainWindow):
 
-    def __init__(self,file=None):
+    def __init__(self,graph=None, script=None):
         super().__init__()
 
         global app
@@ -34,19 +34,28 @@ class GraphApp(QMainWindow):
 
         self.current_file = None
 
-        self.setup_main_window(file)
+        self.setup_main_window(graph,script)
         self.setup_debugger()
         self.setup_actions()
         self.setup_connectors()
 
-    def setup_main_window(self,file=None):
-        self.text_edit = Editor(file)
+    def setup_main_window(self,graph=None, script=None):
+        self.text_edit = Editor()
         self.breakpoints = self.text_edit.lm.breakpoints
 
         self.graph_display = QGraphicsView()
         self.graph_display.setRenderHint(QPainter.Antialiasing)
         self.graph_display.setMouseTracking(True)
         self.graph_display.setScene(GraphScene())
+
+        if script:
+            text = open(script).read()
+            self.text_edit.setPlainText(text)
+            self.current_file = script
+
+        if graph:
+            graph = Graph.read_graph(graph)
+            self.set_graph(graph)
 
         central_widget = QSplitter()
         central_widget.addWidget(self.graph_display)
@@ -213,9 +222,6 @@ class GraphApp(QMainWindow):
 
     def toggle_directed(self, new_value):
         self.graph_display.scene().set_show_direction(new_value)
-
-
-
 
 
 
@@ -444,7 +450,8 @@ class Editor(QPlainTextEdit):
 
     def setPlainText(self,s):
         super().setPlainText(s)
-        self.lm.clear_breakpoints()
+        if hasattr(self,"lm"):
+            self.lm.clear_breakpoints()
 
 
     def change_active(self, val):
