@@ -3,22 +3,15 @@
 TODO:
 -check debugger entering functions
 -only allow editing while not running
--Add a console dock to see debug code's text output
--Add a queue widget that has a visual table
-	-hovering over a row highlights the corresponding
-	    node in the graph
--Look into Qt style support - at least make text less harsh
+
 -Debug highlight is off again?
--Debug seems wonky in general. Takes 2 clicks for a lot of interactions. Maybe a MACOS issue? Try windows. Buttons become dark but don't resolve. Can try to debug by making some print statements.
-Seems like it's hanging internally though.
 
+-have the edge preview display an arrowhead when "show-weights" enabled
 
--reset graph at start of execution instead of end (this is a little tricky/messy.)
+-reset graph at start of execution instead of end (this is a little tricky/messy.) 
+	-Auto breakpoint at end of code to see final graph instead
 -Check if queue is getting cleared correctly? Keeps running repeatedly after repeat clicks
--Ending execution also isn't removing the '>' tracker :: update the margin on execution end, needs to be repainted
 
+-Should eventually change everything to update with signals/slots instead of updating directly.
+	The labels broke before. Color changing seems OK as is.
 
-
-!!! Can't update labels dynamically. Need Node/Edge to be QObjects which emit signals to their !!!
-!!! graphic object counterparts. Good time to separate graph, node, edge from the rest of the. !!!
-!!! debugging scripts.                                                                         !!!

@@ -30,44 +30,95 @@ color_to_qt = {
 class Graph:
 
 	def __init__(self, nodes = None, edges = None, labels = None):
+		"""Create a graph object
+
+		args:
+			nodes(list[Node]): list of nodes to initialize graph. Default = None
+			edges(list[Edge]): list of edges to initialize graph. Default = None
+			labels(dict[str,Node]): dict mapping labels to corresponding nodes. Default = None
+		"""
 		self.edges = edges if edges else list()
 		self.nodes = nodes if nodes else list()
 		self.labels = labels if labels else dict()
 
 	def write_graph(self, file):
+		"""Write this graph to a JSON file
+
+		args:
+			file(str): filename to write graph to
+		"""
 		with open(file, 'w') as out:
 			json.dump({'edges':[x.as_dict() for x in self.edges], 
 					   'nodes':[x.as_dict() for x in self.nodes],
 					   'labels':{s:id(n) for s,n in self.labels.items()}},out)
 
 	def write_graph_to_json(self):
+		"""Returns a dict representation of the graph"""
+
 		return {'edges':[x.as_dict() for x in self.edges], 
 				'nodes':[x.as_dict() for x in self.nodes],
 				'labels':{s:id(n) for s,n in self.labels.items()}}
 
 	def add_edge(self, e):
+		"""Add the provided edge to the graph
+
+		Note: The nodes of that edge are not considered and may not necessarily be in the graph
+
+		args:
+			e(Edge)
+		"""
 		self.edges.append(e)
 
 	def remove_edge(self, e):
+		"""Remove the provided edge from the graph
+
+		args:
+			e(Edge)
+		"""
 		self.edges.remove(e)
 
 	def add_node(self, n):
+		"""Add the provided node to the graph
+
+		args:
+			n(Node)
+		"""
 		self.nodes.append(n)
 
 	def remove_node(self, n):
+		"""Remove the provided node from the graph and its corresponding label if it exists
+
+		args:
+			n(Node)
+		"""
 		self.nodes.remove(n)
 		self.labels = {key:value for key,value in self.labels.items() if value != n}
 
 	def create_label(self, n, label):
+		"""Add a label to the graph which corresponds to the provided node
+
+		args:
+			n(Node): node to be given a label
+			label(str): the label for the node n
+		"""
 		self.labels[label] = n
 		n.label = label
 
 	def read_graph(file):
+		"""Read graph from a JSON file and return the graph object
 
+		args:
+			file(str): file to read, JSON format expected
+		"""
 		with open(file) as json_file:
 			return Graph.read_graph_from_json(json.load(json_file))
 
 	def read_graph_from_json(data):
+		"""Read graph from the proivded dict and return the graph object
+
+		args:
+			data(dict): dictionary of node, edge, and label information
+		"""
 		nodes = {}
 		edges = {}
 		labels = {}
@@ -92,6 +143,11 @@ class Graph:
 		return Graph(list(nodes.values()), list(edges.values()), labels)
 
 	def get_node(self,label=None):
+		"""Return the node with the given label if it exists. Otherwise, returns the first node of the graph
+
+		args:
+			label(str): label of node to return. Default = None
+		"""
 		if not label or label not in self.labels:
 			return self.nodes[0] if len(self.nodes) > 0 else None
 		return self.labels[label]
@@ -99,9 +155,31 @@ class Graph:
 
 
 
-class Edge:
+class Edge(QObject):
+	"""Edge object intended to be used in user scripts as part of the Graph object
+
+	Must be created after the Node objects it is intended to connect. No support for None type nodes
+
+	Edge objects should generally only be created using the user interface. Edge objects created by
+		the user's scripts will currently not be displayed on the canvas.
+
+	Edge objects are comparable to each other and use their edge weights as a sorting key.
+	"""
+
+	label_changed = pyqtSignal(object)
 
 	def __init__(self, src, targ, weight = -1):
+		"""Create an edge object with the provided source and target nodes
+
+		Note that all edges are directed. However, the Node class maintains generators and adjacency data
+			to allow user code to treat edges as undirected.
+
+		args:
+			src(Node): source node for this edge
+			targ(Node): target node for this edge
+			weight(int,float): weight of this edge. Default = -1
+		"""
+		super().__init__()
 		self.src = src
 		self.targ = targ
 		self.weight = weight
@@ -110,6 +188,7 @@ class Edge:
 		self.graphic = GraphicEdge(self)
 
 	def as_dict(self):
+		"""Return a dictionary representation of this Edge object"""
 
 		d = {}
 
@@ -127,29 +206,37 @@ class Edge:
 		return d
 
 	def from_dict(d, nodes):
+		"""Return an Edge object generated from the provided dictionary
+
+		args:
+			d(dict): dictionary of edge data
+			nodes(dict): dictionary of nodes in graph with id keys mapping to Node objects
+		"""
 
 		e = Edge(nodes[d['src']], nodes[d['targ']], d['weight'])
 		return e
 
 	@property
 	def weight(self):
+		"""int or float representing the weight of this edge"""
 		return self._weight
 
 	@weight.setter
 	def weight(self, value):
 		self._weight = value
 		if hasattr(self, 'graphic'):
-			self.graphic.update_label()
+			self.label_changed.emit(self.graphic)
 
 	@property
 	def flow(self):
+		"""int or float representing the flow through this edge"""
 		return self._flow
 
 	@flow.setter
 	def flow(self, value):
 		self._flow = value
 		if hasattr(self, 'graphic'):
-			self.graphic.update_label()
+			self.label_changed.emit(self.graphic)
 
 	def __lt__(self,other):
 		return self.weight < other.weight
@@ -157,8 +244,21 @@ class Edge:
 	def __gt__(self,other):
 		return self.weight > other.weight
 
+	def __eq__(self,other):
+		return self.weight == other.weight
+
+	def __le__(self,other):
+		return self.weight <= other.weight
+
+	def __ge__(self,other):
+		return self.weight >= other.weight
+
+	def __ne__(self,other):
+		return self.weight != other.weight
+
 	@property
 	def color(self):
+		"""Color: See the Color Enum for colors supported by the graphical display"""
 		return self._color
 
 	@color.setter
@@ -166,6 +266,7 @@ class Edge:
 		self._color = value
 		if hasattr(self, 'graphic'):
 			self.graphic.update()
+	
 
 
 class GraphicEdge(QGraphicsLineItem):
@@ -220,50 +321,42 @@ class GraphicEdge(QGraphicsLineItem):
 		return stroker.createStroke(path)
 
 
-	def update_label(self):
-		w = self.edge.weight
-		f = self.edge.flow
-
-		n = self.line().normalVector()
-		d = self.line().unitVector()
-		d.setLength(self.line().length()//2)
-		n.translate(d.p2() - d.p1())
-		n.setLength(GraphicEdge.label_distance)
-
-
-		if not self.edge_label:
-			self.edge_label = QGraphicsTextItem('')
-			self.scene().addItem(self.edge_label)
-		if self.scene().show_flow and self.scene().show_weight:
-			self.edge_label.setPlainText('{:g}/{:g}'.format(f if f is not None else math.nan,w if w is not None else math.nan))
-		elif self.scene().show_weight:
-			self.edge_label.setPlainText('{:g}'.format(w if w is not None else math.nan))
-		elif self.scene().show_flow:
-			self.edge_label.setPlainText('{:g}'.format(f if f is not None else math.nan))
-		else:
-			self.edge_label.setPlainText('')
-
-
-		if 90 < n.angle() < 270 and self.edge.src not in [e.targ for e in self.edge.targ.out]:
-			n.setAngle(n.angle() + 180)
-
-		x = n.p2().x() - self.edge_label.boundingRect().width() / 2
-		y = n.p2().y() - self.edge_label.boundingRect().height() / 2
-		self.edge_label.setPos(x,y)
-
-
 class Node:
+	"""Node object intended to be used in user scripts as part of the Graph object
 
-	def __init__(self,point):
+	Note that if the Node object is not instantiated with a point argument, the corresponding
+		graphical Node will be given a default position of (0,0). Nodes should generally only
+		be created within the graph canvas. Currently, nodes added by user scripts will not
+		update the graph representation.
 
+
+	Node objects should be accessed using the properties:
+		out: a list of all outgoing edges
+		inc: a list of all incoming edges
+		adj: a list of all adjacent nodes, connected by both outgoing and incoming
+		adj_edges: a generator which yields all edges, both inc and out
+
+	
+	"""
+	def __init__(self,point=None,label=''):
+		"""Create a Node object with the provided label, if any.
+
+		args:
+			point(QPoint): object point argument used to specify the center of the corresponding
+				graphical node. Default = None
+			label(str): string representing the label of this particular Node. Default = None
+		"""
 		self.out = []
 		self.inc = []
-		self.adj = []
-		self.label = ''
+		self.adj = [] #TODO: Should change this to be a generator. Less upkeep, less space. Cleaner remove.
+		self.label = label
 		self._color = Color.CYAN
+		if point is None:
+			point = QPoint(0,0)
 		self.graphic = GraphicNode(self,point)
 
 	def as_dict(self):
+		"""Returns a dictionary representation of this Node object"""
 
 		d = {}
 
@@ -280,11 +373,14 @@ class Node:
 		return d
 
 	def from_dict(d):
+		"""Returns a Node object based on the data provided in the dictionary
+		"""
 		n = Node(QPoint(d['x'], d['y']))
 		#TODO: read color?
 		return n
 
 	def remove(self, e):
+		"""Removes the provided Edge object from this nodes outgoing and incoming edge sets"""
 		if e.src == self:
 			self.adj = [v for v in self.adj if v != e.targ]
 			self.out.remove(e)
@@ -300,11 +396,13 @@ class Node:
 
 	@property
 	def adj_edges(self):
+		"""Returns a generator which yields all outgoing and incoming edges"""
 		return self._adj_edges()
 	
 
 	@property
 	def color(self):
+		"""The color of this Node. Refer to the Color enum to see colors supported by the GUI."""
 		return self._color
 
 	@color.setter
@@ -315,6 +413,7 @@ class Node:
 
 	@property
 	def label(self):
+		"""The label for this node which can be used to find this node in the graph. Also used as hover text in GUI"""
 		return self._label
 
 	@label.setter
@@ -359,13 +458,13 @@ class GraphScene(QGraphicsScene):
 		if value != self.show_weight:
 			self.show_weight = value
 			for e in self.graph.edges:
-				e.graphic.update_label()
+				self.update_label(e.graphic)
 
 	def set_show_flow(self, value):
 		if value != self.show_flow:
 			self.show_flow = value
 			for e in self.graph.edges:
-				e.graphic.update_label()
+				self.update_label(e.graphic)
 
 	def set_show_direction(self, value):
 		if  value != self.show_direction:
@@ -381,8 +480,8 @@ class GraphScene(QGraphicsScene):
 		for n in graph.nodes:
 			self.addItem(n.graphic)
 		for e in graph.edges:
-			self.addItem(e.graphic)
-			e.graphic.update_label()
+			self.add_edge_graphic(e)
+			self.update_label(e.graphic)
 
 	def set_graph_from_json(self, data):
 		self.clear()
@@ -392,8 +491,8 @@ class GraphScene(QGraphicsScene):
 		for n in self.graph.nodes:
 			self.addItem(n.graphic)
 		for e in self.graph.edges:
-			self.addItem(e.graphic)
-			e.graphic.update_label()
+			self.add_edge_graphic(e)
+			self.update_label(e.graphic)
 
 	def get_graph(self):
 		return self.graph
@@ -494,14 +593,18 @@ class GraphScene(QGraphicsScene):
 		if u not in v.adj:
 			v.adj.append(u)
 		self.graph.add_edge(e)
-		self.addItem(e.graphic)
+		self.add_edge_graphic(e)
 
 		for tmp in v.out:
 			if tmp.targ == u:
-				tmp.graphic.update_label()
+				self.update_label(tmp.graphic)
 
 		if w is None and self.show_weight:
 			self.set_edge_weight(e)
+
+	def add_edge_graphic(self, e):
+		self.addItem(e.graphic)
+		e.label_changed.connect(self.update_label)
 
 
 	def set_edge_weight(self, e):
@@ -540,6 +643,42 @@ class GraphScene(QGraphicsScene):
 		if not ok_pressed:
 			return
 		self.graph.create_label(n.node,value)
+
+	def update_label(self, e):
+
+		if not isinstance(e, GraphicEdge):
+			print(type(e), 'weird')
+			return
+		
+		w = e.edge.weight
+		f = e.edge.flow
+
+		n = e.line().normalVector()
+		d = e.line().unitVector()
+		d.setLength(e.line().length()//2)
+		n.translate(d.p2() - d.p1())
+		n.setLength(GraphicEdge.label_distance)
+
+
+		if not e.edge_label:
+			e.edge_label = QGraphicsTextItem('')
+			self.addItem(e.edge_label)
+		if self.show_flow and self.show_weight:
+			e.edge_label.setPlainText('{:g}/{:g}'.format(f if f is not None else math.nan,w if w is not None else math.nan))
+		elif self.show_weight:
+			e.edge_label.setPlainText('{:g}'.format(w if w is not None else math.nan))
+		elif self.show_flow:
+			e.edge_label.setPlainText('{:g}'.format(f if f is not None else math.nan))
+		else:
+			e.edge_label.setPlainText('')
+
+
+		if 90 < n.angle() < 270 and e.edge.src not in [e.targ for e in e.edge.targ.out]:
+			n.setAngle(n.angle() + 180)
+
+		x = n.p2().x() - e.edge_label.boundingRect().width() / 2
+		y = n.p2().y() - e.edge_label.boundingRect().height() / 2
+		e.edge_label.setPos(x,y)
 
 
 
