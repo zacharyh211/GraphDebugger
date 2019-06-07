@@ -637,13 +637,19 @@ class GraphScene(QGraphicsScene):
 		self.graph.remove_node(n)
 
 	def flip_graphic_edge(self, e):
-		edge = e.edge
-		edge.src.out.remove(edge)
-		edge.targ.inc.remove(edge)
-		edge.src.inc.append(edge)
-		edge.targ.out.append(edge)
-		edge.src, edge.targ = edge.targ, edge.src
-		e.update()
+		s = e.edge.src
+		t = e.edge.targ
+		w = e.edge.weight
+		self.remove_graphic_edge(e)
+
+		e = Edge(t,s,w)
+		t.out.append(e)
+		s.inc.append(e)
+		t.adj.append(s)
+		s.adj.append(t)
+		self.graph.add_edge(e)
+		self.addItem(e.graphic)
+		self.update_label(e.graphic)
 
 	def label_graphic_node(self,n):
 		value, ok_pressed = QInputDialog.getText(None, "Input Label", "Label=")
@@ -652,9 +658,7 @@ class GraphScene(QGraphicsScene):
 		self.graph.create_label(n.node,value)
 
 	def update_label(self, e):
-
 		if not isinstance(e, GraphicEdge):
-
 			return
 		
 		w = e.edge.weight
@@ -665,7 +669,6 @@ class GraphScene(QGraphicsScene):
 		d.setLength(e.line().length()//2)
 		n.translate(d.p2() - d.p1())
 		n.setLength(GraphicEdge.label_distance)
-
 
 		if not e.edge_label:
 			e.edge_label = QGraphicsTextItem('')

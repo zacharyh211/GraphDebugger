@@ -171,8 +171,9 @@ class GraphApp(QMainWindow):
             text = self.text_edit.toPlainText()
             with open(self.current_file, 'wt') as file:
                 file.write(text)
+            return True
         else:
-            self.save_file_as()
+            return self.save_file_as()
 
     def load_file(self):
         filename,file_type = QFileDialog.getOpenFileName(self, 'Select Graph To Import', get_dirpath('samples/'),
@@ -187,11 +188,12 @@ class GraphApp(QMainWindow):
         filename,file_type = QFileDialog.getSaveFileName(self, 'Save File As', get_dirpath('samples/'), 
                         'Python File (*.py);;All Files (*.*)')
         if not filename:
-            return
+            return False
         text = self.text_edit.toPlainText()
         with open(filename, 'wt') as file:
             file.write(text)
         self.current_file = filename
+        return True
 
     def debug_resume(self):
 
@@ -210,7 +212,9 @@ class GraphApp(QMainWindow):
         self.debug_queue.put(Op.SKIP)
 
     def debug_start(self):
-        self.save_file()
+        successful = self.save_file()
+        if not succesful:
+            return
         self.debug_queue.put(Op.START)
 
     def graph_export(self):
