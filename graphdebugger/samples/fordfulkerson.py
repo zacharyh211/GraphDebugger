@@ -1,6 +1,5 @@
 
-import Graph, EditDebugger
-from Graph import Color
+from graphdebugger.Graph import Color, Graph
 import heapq, math
 
 def fordfulkerson(g):

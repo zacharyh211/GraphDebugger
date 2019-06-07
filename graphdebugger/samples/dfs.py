@@ -1,5 +1,4 @@
 
-
 from graphdebugger.Graph import Color, Graph
 
 time = 0

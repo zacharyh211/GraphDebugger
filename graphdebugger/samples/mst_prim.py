@@ -1,8 +1,6 @@
 
+from graphdebugger.Graph import Color, Graph
 import heapq, math
-
-import Graph, EditDebugger
-from Graph import Color
 
 def prim(g):
 
