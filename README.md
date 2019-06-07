@@ -8,7 +8,7 @@ A Python 3 debugging tool which provides a visual representation of graph algori
 Install using pip:
 
 ```
-  $ pip install VisualGraphDebugger
+  $ pip install VisualGraphDebugger-zacharyh211
 ```
 
 ### Launching

@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 print(find_packages())
 
 setup(name='VisualGraphDebugger-zacharyh211',
-	version='0.4',
+	version='0.5',
 	description='GUI debugger and graph library for writing and debugging graph algorithms',
 	author='Zachary Hancock',
 	packages=['graphdebugger'],
