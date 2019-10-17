@@ -64,7 +64,7 @@ Each edge has a color, weight, and flow amount.
 
 The color can be set to any value in the Color enum contained within the Graph module and will be reflected within the debugger.
 
-The weight and flow will be displayed alongside the edges in the form "{weight} / {flow}" when this options are toggled On.
+The weight and flow will be displayed alongside the edges in the form "{flow} / {weight}" when this options are toggled On.
 
 ### The Debugger
 
