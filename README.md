@@ -1,6 +1,8 @@
 # Graph Visual Debugger
 
-A Python 3 debugging tool which provides a visual representation of graph algorithms written using the basic included object oriented graph library. Users can see node and edge colorings, edge weights, edge direction, flow values, and node labels during execution. Graphs are constructed within the interface and can be easily referenced within user scripts to request node and edge iterators or to request specific nodes by label. 
+A Python 3 debugging tool which provides a visual representation of graph algorithms written using the basic included object oriented graph library. Users can see node and edge colorings, edge weights, edge direction, flow values, and node labels during execution. Graphs are constructed within the interface and can be easily referenced within user scripts to request node and edge iterators or to request specific nodes by label.
+
+![Demo Image](https://github.com/zacharyh211/GraphDebugger/blob/master/img/dijkstra_example.png)
 
 
 ### Installing
